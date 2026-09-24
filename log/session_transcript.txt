@@ -1,0 +1,41 @@
+================================================================================
+SESSION TRANSCRIPT: Production Visual Search & Out-of-Distribution Pipeline
+Project: Thuli Studios Take-Home (Problem 2 - Stump the Model)
+Developer: Potri Selvan
+================================================================================
+
+--- USER ---
+I am tackling Problem 2 (Stump the Model) for Thuli Studios. I need to build a high-throughput image retrieval matcher for a catalogue of over 5,000 retail items. It needs to run efficiently on standard CPU hardware without requiring a heavy GPU. What backbone and vector index structure do you recommend for this scale?
+
+--- ASSISTANT ---
+For a catalogue of ~5,000 items, `EfficientNet-B0` via the `timm` library is an optimal choice. It offers an excellent trade-off between speed and representation capacity, outputting dense 1280-dimensional feature vectors that extract quickly on CPU. For indexing, FAISS `IndexFlatIP` (Inner Product) is ideal because brute-force exact search takes less than a millisecond at this scale, ensuring 100% recall with zero quantization loss.
+
+--- USER ---
+That makes sense. To ensure FAISS inner product mathematically computes true cosine similarity, we must strictly L2-normalize all vectors prior to both indexing and querying. Let's write the core `CatalogueMatcher` class in `src/matcher.py`. It should handle building the index from our catalogue directory, saving artifacts, and running queries with torchvision standard center crops and normalization.
+
+--- ASSISTANT ---
+[Generated core `src/matcher.py` implementation featuring EfficientNet-B0 feature extraction, L2 vector normalization, and FAISS binary artifact saving/loading.]
+
+--- USER ---
+The core matcher compiles correctly and indexes the catalogue, but we need to ensure enterprise-grade resilience. What happens if the catalogue folder contains corrupted image files or transparent RGBA PNGs with four channels? A naive script will crash midway through processing 5,000 items. Let's wrap the feature extraction loop in a robust `try-except` block, log a warning for any corrupt file instead of failing, and automatically convert RGBA and grayscale images into standard 3-channel RGB tensors.
+
+--- ASSISTANT ---
+[Updated feature extraction loop with defensive exception handling, logging, and automatic PIL `.convert("RGB")` channel normalization.]
+
+--- USER ---
+Now let's focus on the out-of-distribution (OOD) rejection requirement. When a user queries an object that is genuinely not in our catalogue, the system shouldn't force a wrong match with high confidence. Let's implement a calibrated threshold (tau = 0.45) in the query method. If the top similarity score falls below this threshold, it should return `is_matched: False` alongside the top candidates.
+
+--- ASSISTANT ---
+[Implemented OOD thresholding logic in the `query` method, returning top-k matches, similarity scores, and the boolean acceptance flag.]
+
+--- USER ---
+For our testing script `run_test.py`, hardcoding a specific filename like `unknown.jpg` is a brittle design choice. Real users might drop in a `.png`, `.webp`, or `.jpeg` file. Let's use Python's `glob` module and a valid extension tuple to dynamically detect any query file starting with 'unknown' regardless of its extension. That's a clean edge-case optimization.
+
+--- ASSISTANT ---
+[Updated `run_test.py` with dynamic file detection, extension agnosticism, and automated artifact loading checks.]
+
+--- USER ---
+Let's run the end-to-end verification. The 5,175 items indexed successfully in bulk, self-queries scored an exact 1.0000 match, and our out-of-distribution test item scored ~0.3384, correctly triggering a clean rejection (`is_matched: False`). The system is stable, fast, and handles edge cases gracefully. Let's finalize the professional README.md and DECISIONS.md documentation.
+
+--- ASSISTANT ---
+[Generated senior-level technical documentation covering architectural choices, trade-offs, and honest failure modes.]
