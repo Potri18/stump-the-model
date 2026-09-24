@@ -1,0 +1,9 @@
+torch
+torchvision
+timm
+faiss-cpu
+numpy
+pandas
+Pillow
+opencv-python
+scikit-learn
